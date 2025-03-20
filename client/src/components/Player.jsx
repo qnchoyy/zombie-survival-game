@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
   const [position, setPosition] = useState({ x: 50, y: 90 });
   const [playerDirection, setPlayerDirection] = useState("up");
-  const baseSpeed = 3;
-  const [keys, setKeys] = useState({
+  const baseSpeed = 0.3;
+  const keysRef = useRef({
     up: false,
     down: false,
     left: false,
@@ -32,19 +32,19 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
       const key = e.key.toLowerCase();
 
       if (key === "arrowup" || key === "w") {
-        setKeys((prev) => ({ ...prev, up: true }));
+        keysRef.current.up = true;
         setPlayerDirection("up");
       }
       if (key === "arrowdown" || key === "s") {
-        setKeys((prev) => ({ ...prev, down: true }));
+        keysRef.current.down = true;
         setPlayerDirection("down");
       }
       if (key === "arrowleft" || key === "a") {
-        setKeys((prev) => ({ ...prev, left: true }));
+        keysRef.current.left = true;
         setPlayerDirection("left");
       }
       if (key === "arrowright" || key === "d") {
-        setKeys((prev) => ({ ...prev, right: true }));
+        keysRef.current.right = true;
         setPlayerDirection("right");
       }
     };
@@ -53,16 +53,16 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
       const key = e.key.toLowerCase();
 
       if (key === "arrowup" || key === "w") {
-        setKeys((prev) => ({ ...prev, up: false }));
+        keysRef.current.up = false;
       }
       if (key === "arrowdown" || key === "s") {
-        setKeys((prev) => ({ ...prev, down: false }));
+        keysRef.current.down = false;
       }
       if (key === "arrowleft" || key === "a") {
-        setKeys((prev) => ({ ...prev, left: false }));
+        keysRef.current.left = false;
       }
       if (key === "arrowright" || key === "d") {
-        setKeys((prev) => ({ ...prev, right: false }));
+        keysRef.current.right = false;
       }
     };
 
@@ -79,6 +79,7 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
     if (gamePaused || !bridgeBounds) return;
 
     const movePlayer = () => {
+      const keys = keysRef.current;
       setPosition((prev) => {
         let { x, y } = prev;
         const speed = baseSpeed;
@@ -101,15 +102,27 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
       });
     };
 
-    const animationId = requestAnimationFrame(function animate() {
-      movePlayer();
-      if (!gamePaused) {
-        requestAnimationFrame(animate);
-      }
-    });
+    let lastTime = 0;
+    const animationFrame = (timestamp) => {
+      if (!lastTime) lastTime = timestamp;
+      const elapsed = timestamp - lastTime;
 
-    return () => cancelAnimationFrame(animationId);
-  }, [keys, setPlayerPosition, bridgeBounds, gamePaused]);
+      if (elapsed > 16) {
+        movePlayer();
+        lastTime = timestamp;
+      }
+
+      if (!gamePaused) {
+        requestAnimationFrame(animationFrame);
+      }
+    };
+
+    const animationId = requestAnimationFrame(animationFrame);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [bridgeBounds, gamePaused, setPlayerPosition]);
 
   const getDirectionEmoji = () => {
     switch (playerDirection) {
