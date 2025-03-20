@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 
 export const Zombie = ({
   initialPosition,
-  playerPosition,
   bridgeBounds,
   gameOver,
   gamePaused,
@@ -11,56 +10,40 @@ export const Zombie = ({
     x: initialPosition.x,
     y: initialPosition.y,
   });
-  const zombieRef = useRef(null);
   const speedRef = useRef(initialPosition.speed || 0.8);
-  const lastUpdateTimeRef = useRef(Date.now());
 
   useEffect(() => {
     if (gameOver || gamePaused) return;
 
-    let animationFrameId;
+    let lastTime = 0;
 
-    const updateZombiePosition = () => {
-      const now = Date.now();
-      const deltaTime = (now - lastUpdateTimeRef.current) / 16;
-      lastUpdateTimeRef.current = now;
+    const moveZombie = (timestamp) => {
+      if (!lastTime) lastTime = timestamp;
+      const deltaTime = (timestamp - lastTime) / 16;
+      lastTime = timestamp;
 
       setPosition((prev) => {
-        const targetX = playerPosition.x - bridgeBounds.left;
-        const targetY = playerPosition.y - bridgeBounds.top;
+        const targetY = bridgeBounds.height - 20;
+        const speed = speedRef.current * Math.min(deltaTime, 3);
 
-        const dx = targetX - prev.x;
-        const dy = targetY - prev.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > 0) {
-          const speed = speedRef.current * deltaTime;
-          const moveX = (dx / distance) * speed;
-          const moveY = (dy / distance) * speed;
-
-          return {
-            x: Math.max(10, Math.min(prev.x + moveX, bridgeBounds.width - 10)),
-            y: Math.max(10, Math.min(prev.y + moveY, bridgeBounds.height - 10)),
-          };
-        }
-        return prev;
+        return {
+          x: prev.x,
+          y: Math.min(prev.y + speed, targetY),
+        };
       });
 
       if (!gameOver && !gamePaused) {
-        animationFrameId = requestAnimationFrame(updateZombiePosition);
+        requestAnimationFrame(moveZombie);
       }
     };
 
-    animationFrameId = requestAnimationFrame(updateZombiePosition);
+    const animationId = requestAnimationFrame(moveZombie);
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [playerPosition, bridgeBounds, gameOver, gamePaused]);
+    return () => cancelAnimationFrame(animationId);
+  }, [bridgeBounds, gameOver, gamePaused]);
 
   return (
     <div
-      ref={zombieRef}
       className="absolute flex items-center justify-center"
       style={{
         left: `${position.x}px`,
