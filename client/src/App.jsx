@@ -17,7 +17,9 @@ const App = () => {
               • Use <span className="font-bold">W,A,S,D</span> or{" "}
               <span className="font-bold">Arrow Keys</span> to move
             </li>
-            <li>• Avoid the zombies for as long as possible</li>
+            <li>• Defend the orphanage from zombies</li>
+            <li>• Don't let zombies reach the orphanage</li>
+            <li>• Avoid getting caught by zombies</li>
             <li>
               • Press <span className="font-bold">P</span> to pause the game
             </li>
