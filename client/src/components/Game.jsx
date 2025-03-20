@@ -12,7 +12,7 @@ const Game = () => {
   const [gameOver, setGameOver] = useState(false);
   const [gamePaused, setGamePaused] = useState(false);
   const [difficulty, setDifficulty] = useState(1);
-  const [orphanageHealth, setOrphanageHealth] = useState(100);
+  const [orphanageHealth, setOrphanageHealth] = useState(300);
 
   useEffect(() => {
     const handleResize = () => {
@@ -71,18 +71,15 @@ const Game = () => {
 
     const gameLoop = setInterval(() => {
       const playerRadius = 20;
-
       const zombieRadius = 16;
-
       const collisionDistance = playerRadius + zombieRadius;
-
       const orphanageY = bridgeBounds.height - 50;
 
       setZombies((prevZombies) => {
-        const remainingZombies = [];
-        let orphanageDamage = 0;
+        let newZombies = [...prevZombies];
+        let damageToOrphanage = 0;
 
-        for (const zombie of prevZombies) {
+        newZombies = newZombies.filter((zombie) => {
           const zombieAbsX = bridgeBounds.left + zombie.x;
           const zombieAbsY = bridgeBounds.top + zombie.y;
 
@@ -91,30 +88,29 @@ const Game = () => {
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < collisionDistance) {
-            setTimeout(() => setGameOver(true), 0);
-            return prevZombies;
+            setGameOver(true);
+            return true;
           }
 
           if (zombie.y >= orphanageY) {
-            orphanageDamage += 10;
-          } else {
-            remainingZombies.push(zombie);
+            damageToOrphanage += 30;
+            return false;
           }
+
+          return true;
+        });
+
+        if (damageToOrphanage > 0) {
+          setOrphanageHealth((prevHealth) => {
+            const newHealth = Math.max(0, prevHealth - damageToOrphanage);
+            if (newHealth <= 0) {
+              setGameOver(true);
+            }
+            return newHealth;
+          });
         }
 
-        if (orphanageDamage > 0) {
-          setTimeout(() => {
-            setOrphanageHealth((prev) => {
-              const newHealth = Math.max(0, prev - orphanageDamage);
-              if (newHealth <= 0) {
-                setGameOver(true);
-              }
-              return newHealth;
-            });
-          }, 0);
-        }
-
-        return remainingZombies;
+        return newZombies;
       });
     }, 100);
 
@@ -159,8 +155,10 @@ const Game = () => {
     setGameOver(false);
     setGamePaused(false);
     setDifficulty(1);
-    setOrphanageHealth(100);
+    setOrphanageHealth(300);
   };
+
+  const healthPercentage = (orphanageHealth / 300) * 100;
 
   return (
     <div className="relative w-full h-screen flex overflow-hidden">
@@ -200,11 +198,17 @@ const Game = () => {
         <div className="absolute bottom-14 left-4 right-4 h-4 bg-gray-300 rounded-full overflow-hidden">
           <div
             className="h-full bg-red-500 transition-all duration-300"
-            style={{ width: `${orphanageHealth}%` }}
+            style={{ width: `${healthPercentage}%` }}
           ></div>
         </div>
 
-        <p className="absolute bottom-20 w-full text-center text-white font-bold">
+        <div className="absolute bottom-20 left-0 right-0 flex justify-center">
+          <p className="text-white font-bold bg-black bg-opacity-50 px-2 py-1 rounded">
+            HP: {orphanageHealth}/300
+          </p>
+        </div>
+
+        <p className="absolute bottom-26 w-full text-center text-white font-bold">
           🌉 Bridge
         </p>
 
