@@ -14,6 +14,8 @@ const Game = () => {
   const [difficulty, setDifficulty] = useState(1);
   const [orphanageHealth, setOrphanageHealth] = useState(300);
 
+  const orphanagePosition = bridgeBounds ? bridgeBounds.height - 60 : 0;
+
   useEffect(() => {
     const handleResize = () => {
       if (bridgeRef.current) {
@@ -69,34 +71,16 @@ const Game = () => {
   useEffect(() => {
     if (!bridgeBounds || gameOver || gamePaused) return;
 
-    const gameLoop = setInterval(() => {
-      const playerRadius = 20;
-      const zombieRadius = 16;
-      const collisionDistance = playerRadius + zombieRadius;
-      const orphanageY = bridgeBounds.height - 50;
-
+    const checkZombiesReachedOrphanage = () => {
       setZombies((prevZombies) => {
         let newZombies = [...prevZombies];
         let damageToOrphanage = 0;
 
-        newZombies = newZombies.filter((zombie) => {
-          const zombieAbsX = bridgeBounds.left + zombie.x;
-          const zombieAbsY = bridgeBounds.top + zombie.y;
-
-          const dx = zombieAbsX - playerPosition.x;
-          const dy = zombieAbsY - playerPosition.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < collisionDistance) {
-            setGameOver(true);
-            return true;
-          }
-
-          if (zombie.y >= orphanageY) {
+        const updatedZombies = newZombies.filter((zombie) => {
+          if (zombie.y >= orphanagePosition) {
             damageToOrphanage += 30;
             return false;
           }
-
           return true;
         });
 
@@ -110,12 +94,14 @@ const Game = () => {
           });
         }
 
-        return newZombies;
+        return updatedZombies;
       });
-    }, 100);
+    };
 
-    return () => clearInterval(gameLoop);
-  }, [bridgeBounds, playerPosition, gameOver, gamePaused]);
+    const checkInterval = setInterval(checkZombiesReachedOrphanage, 100);
+
+    return () => clearInterval(checkInterval);
+  }, [bridgeBounds, gameOver, gamePaused, orphanagePosition]);
 
   useEffect(() => {
     if (gameOver || gamePaused) return;
@@ -188,6 +174,7 @@ const Game = () => {
               bridgeBounds={bridgeBounds}
               gameOver={gameOver}
               gamePaused={gamePaused}
+              orphanagePosition={orphanagePosition}
             />
           ))}
 
@@ -231,7 +218,7 @@ const Game = () => {
             <p className="text-white text-lg mb-6">
               {orphanageHealth <= 0
                 ? "The orphanage was destroyed!"
-                : "You were caught by zombies!"}
+                : "Game Over!"}
             </p>
             <button
               onClick={restartGame}
