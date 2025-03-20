@@ -12,18 +12,7 @@ const Game = () => {
   const [gameOver, setGameOver] = useState(false);
   const [gamePaused, setGamePaused] = useState(false);
   const [difficulty, setDifficulty] = useState(1);
-  const playerAbsolutePositionRef = useRef({ x: 0, y: 0 });
-  const gameStateRef = useRef({
-    isOver: false,
-    isPaused: false,
-  });
-
-  useEffect(() => {
-    gameStateRef.current = {
-      isOver: gameOver,
-      isPaused: gamePaused,
-    };
-  }, [gameOver, gamePaused]);
+  const [orphanageHealth, setOrphanageHealth] = useState(100);
 
   useEffect(() => {
     const handleResize = () => {
@@ -42,44 +31,18 @@ const Game = () => {
 
     handleResize();
 
-    let resizeTimeout;
-    const debouncedResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(handleResize, 100);
-    };
-
-    window.addEventListener("resize", debouncedResize);
-    return () => {
-      clearTimeout(resizeTimeout);
-      window.removeEventListener("resize", debouncedResize);
-    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    if (bridgeBounds) {
-      const initialX = bridgeBounds.left + bridgeBounds.width / 2;
-      const initialY = bridgeBounds.top + bridgeBounds.height * 0.9;
-      playerAbsolutePositionRef.current = { x: initialX, y: initialY };
-      setPlayerPosition({ x: initialX, y: initialY });
-    }
-  }, [bridgeBounds]);
-
-  useEffect(() => {
-    playerAbsolutePositionRef.current = playerPosition;
-  }, [playerPosition]);
-
-  useEffect(() => {
-    if (!bridgeBounds) return;
-
-    let spawnIntervalId;
+    if (!bridgeBounds || gameOver || gamePaused) return;
 
     const spawnZombie = () => {
-      if (gameStateRef.current.isOver || gameStateRef.current.isPaused) return;
-
       const spawnRate = Math.max(2000 - difficulty * 150, 600);
 
       const newZombie = {
-        id: zombieCount,
+        id: Date.now() + Math.random(),
         x: Math.random() * (bridgeBounds.width - 40) + 20,
         y: 30,
         speed: 0.5 + Math.random() * 0.3 + difficulty * 0.1,
@@ -87,59 +50,76 @@ const Game = () => {
 
       setZombies((prev) => [...prev, newZombie]);
       setZombieCount((prev) => prev + 1);
-
-      spawnIntervalId = setTimeout(spawnZombie, spawnRate);
     };
 
-    spawnIntervalId = setTimeout(spawnZombie, 1000);
+    const initialSpawn = setTimeout(spawnZombie, 1000);
 
-    return () => clearTimeout(spawnIntervalId);
-  }, [bridgeBounds, zombieCount, difficulty]);
+    const spawnInterval = setInterval(() => {
+      if (!gameOver && !gamePaused) {
+        spawnZombie();
+      }
+    }, Math.max(2000 - difficulty * 150, 600));
+
+    return () => {
+      clearTimeout(initialSpawn);
+      clearInterval(spawnInterval);
+    };
+  }, [bridgeBounds, difficulty, gameOver, gamePaused]);
 
   useEffect(() => {
-    if (!bridgeBounds) return;
+    if (!bridgeBounds || gameOver || gamePaused) return;
 
-    let collisionCheckId;
-
-    const checkCollision = () => {
-      if (gameStateRef.current.isOver || gameStateRef.current.isPaused) {
-        collisionCheckId = requestAnimationFrame(checkCollision);
-        return;
-      }
-
+    const gameLoop = setInterval(() => {
       const playerRadius = 20;
+
       const zombieRadius = 16;
+
       const collisionDistance = playerRadius + zombieRadius;
 
-      const currentPlayerPos = playerAbsolutePositionRef.current;
+      const orphanageY = bridgeBounds.height - 50;
 
       setZombies((prevZombies) => {
-        const onScreenZombies = prevZombies.filter(
-          (zombie) => zombie.y < bridgeBounds.height + 50
-        );
+        const remainingZombies = [];
+        let orphanageDamage = 0;
 
-        for (const zombie of onScreenZombies) {
+        for (const zombie of prevZombies) {
           const zombieAbsX = bridgeBounds.left + zombie.x;
           const zombieAbsY = bridgeBounds.top + zombie.y;
 
-          const dx = zombieAbsX - currentPlayerPos.x;
-          const dy = zombieAbsY - currentPlayerPos.y;
+          const dx = zombieAbsX - playerPosition.x;
+          const dy = zombieAbsY - playerPosition.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < collisionDistance) {
-            setGameOver(true);
-            return onScreenZombies;
+            setTimeout(() => setGameOver(true), 0);
+            return prevZombies;
+          }
+
+          if (zombie.y >= orphanageY) {
+            orphanageDamage += 10;
+          } else {
+            remainingZombies.push(zombie);
           }
         }
-        return onScreenZombies;
+
+        if (orphanageDamage > 0) {
+          setTimeout(() => {
+            setOrphanageHealth((prev) => {
+              const newHealth = Math.max(0, prev - orphanageDamage);
+              if (newHealth <= 0) {
+                setGameOver(true);
+              }
+              return newHealth;
+            });
+          }, 0);
+        }
+
+        return remainingZombies;
       });
+    }, 100);
 
-      collisionCheckId = requestAnimationFrame(checkCollision);
-    };
-
-    collisionCheckId = requestAnimationFrame(checkCollision);
-    return () => cancelAnimationFrame(collisionCheckId);
-  }, [bridgeBounds]);
+    return () => clearInterval(gameLoop);
+  }, [bridgeBounds, playerPosition, gameOver, gamePaused]);
 
   useEffect(() => {
     if (gameOver || gamePaused) return;
@@ -149,8 +129,9 @@ const Game = () => {
         const newScore = prev + 1;
 
         if (newScore % 20 === 0 && newScore > 0) {
-          setDifficulty((prevDifficulty) => Math.min(prevDifficulty + 1, 10));
+          setDifficulty((prevDiff) => Math.min(prevDiff + 1, 10));
         }
+
         return newScore;
       });
     }, 1000);
@@ -178,18 +159,7 @@ const Game = () => {
     setGameOver(false);
     setGamePaused(false);
     setDifficulty(1);
-
-    if (bridgeBounds) {
-      const initialX = bridgeBounds.left + bridgeBounds.width / 2;
-      const initialY = bridgeBounds.top + bridgeBounds.height * 0.9;
-      playerAbsolutePositionRef.current = { x: initialX, y: initialY };
-      setPlayerPosition({ x: initialX, y: initialY });
-    }
-  };
-
-  const updatePlayerPosition = (pos) => {
-    playerAbsolutePositionRef.current = pos;
-    setPlayerPosition(pos);
+    setOrphanageHealth(100);
   };
 
   return (
@@ -206,7 +176,7 @@ const Game = () => {
       >
         {bridgeBounds && !gameOver && (
           <Player
-            setPlayerPosition={updatePlayerPosition}
+            setPlayerPosition={setPlayerPosition}
             bridgeBounds={bridgeBounds}
             gamePaused={gamePaused}
           />
@@ -217,14 +187,24 @@ const Game = () => {
             <Zombie
               key={zombie.id}
               initialPosition={zombie}
-              playerPosition={playerPosition}
               bridgeBounds={bridgeBounds}
               gameOver={gameOver}
               gamePaused={gamePaused}
             />
           ))}
 
-        <p className="absolute bottom-4 w-full text-center text-white font-bold">
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-amber-700 flex items-center justify-center">
+          <p className="text-white font-bold">Orphanage</p>
+        </div>
+
+        <div className="absolute bottom-14 left-4 right-4 h-4 bg-gray-300 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-red-500 transition-all duration-300"
+            style={{ width: `${orphanageHealth}%` }}
+          ></div>
+        </div>
+
+        <p className="absolute bottom-20 w-full text-center text-white font-bold">
           🌉 Bridge
         </p>
 
@@ -244,6 +224,11 @@ const Game = () => {
           <div className="absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center">
             <h2 className="text-3xl text-red-500 font-bold mb-4">Game Over!</h2>
             <p className="text-white text-xl mb-6">Final Score: {score}</p>
+            <p className="text-white text-lg mb-6">
+              {orphanageHealth <= 0
+                ? "The orphanage was destroyed!"
+                : "You were caught by zombies!"}
+            </p>
             <button
               onClick={restartGame}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
