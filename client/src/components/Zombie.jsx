@@ -5,6 +5,7 @@ export const Zombie = ({
   bridgeBounds,
   gameOver,
   gamePaused,
+  orphanagePosition,
 }) => {
   const [position, setPosition] = useState({
     x: initialPosition.x,
@@ -12,8 +13,10 @@ export const Zombie = ({
   });
   const speedRef = useRef(initialPosition.speed || 0.8);
 
+  const hasReachedOrphanage = position.y >= orphanagePosition;
+
   useEffect(() => {
-    if (gameOver || gamePaused) return;
+    if (gameOver || gamePaused || hasReachedOrphanage) return;
 
     let lastTime = 0;
 
@@ -23,16 +26,16 @@ export const Zombie = ({
       lastTime = timestamp;
 
       setPosition((prev) => {
-        const targetY = bridgeBounds.height - 20;
+        const maxY = orphanagePosition;
         const speed = speedRef.current * Math.min(deltaTime, 3);
 
         return {
           x: prev.x,
-          y: Math.min(prev.y + speed, targetY),
+          y: Math.min(prev.y + speed, maxY),
         };
       });
 
-      if (!gameOver && !gamePaused) {
+      if (!gameOver && !gamePaused && !hasReachedOrphanage) {
         requestAnimationFrame(moveZombie);
       }
     };
@@ -40,7 +43,17 @@ export const Zombie = ({
     const animationId = requestAnimationFrame(moveZombie);
 
     return () => cancelAnimationFrame(animationId);
-  }, [bridgeBounds, gameOver, gamePaused]);
+  }, [
+    bridgeBounds,
+    gameOver,
+    gamePaused,
+    hasReachedOrphanage,
+    orphanagePosition,
+  ]);
+
+  if (hasReachedOrphanage) {
+    return null;
+  }
 
   return (
     <div
