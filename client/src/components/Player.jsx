@@ -17,11 +17,13 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
       const bottomY = 90;
       setPosition({ x: centerX, y: bottomY });
 
-      const absoluteX =
-        bridgeBounds.left + (centerX / 100) * bridgeBounds.width;
-      const absoluteY =
-        bridgeBounds.top + (bottomY / 100) * bridgeBounds.height;
-      setPlayerPosition({ x: absoluteX, y: absoluteY });
+      setTimeout(() => {
+        const absoluteX =
+          bridgeBounds.left + (centerX / 100) * bridgeBounds.width;
+        const absoluteY =
+          bridgeBounds.top + (bottomY / 100) * bridgeBounds.height;
+        setPlayerPosition({ x: absoluteX, y: absoluteY });
+      }, 0);
     }
   }, [bridgeBounds, setPlayerPosition]);
 
@@ -96,7 +98,9 @@ export const Player = ({ setPlayerPosition, bridgeBounds, gamePaused }) => {
         const absoluteX = bridgeBounds.left + (x / 100) * bridgeBounds.width;
         const absoluteY = bridgeBounds.top + (y / 100) * bridgeBounds.height;
 
-        setPlayerPosition({ x: absoluteX, y: absoluteY });
+        setTimeout(() => {
+          setPlayerPosition({ x: absoluteX, y: absoluteY });
+        }, 0);
 
         return { x, y };
       });
