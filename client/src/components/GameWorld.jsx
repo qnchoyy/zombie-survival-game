@@ -1,8 +1,18 @@
 import Player from "./Player";
 import Zombie from "./Zombie";
 import Orphanage from "./Orphanage";
+import Bullet from "./Bullet";
 
-const GameWorld = ({ bridgeRef, playerPosition, zombies, gameState }) => {
+const GameWorld = ({
+  bridgeRef,
+  playerPosition,
+  zombies,
+  gameState,
+  bullets,
+  playerDirection,
+  setPlayerDirection,
+  onShoot,
+}) => {
   const { gameOver, gamePaused, orphanageHealth } = gameState;
   const bridgeBounds = bridgeRef.current?.getBoundingClientRect();
   const orphanagePosition = bridgeBounds ? bridgeBounds.height - 60 : 0;
@@ -20,7 +30,13 @@ const GameWorld = ({ bridgeRef, playerPosition, zombies, gameState }) => {
         className="w-1/3 h-full bg-gray-600 relative border-x-8 border-gray-800"
       >
         {bridgeBounds && !gameOver && (
-          <Player position={playerPosition} gamePaused={gamePaused} />
+          <Player
+            position={playerPosition}
+            gamePaused={gamePaused}
+            onShoot={onShoot}
+            direction={playerDirection}
+            setDirection={setPlayerDirection}
+          />
         )}
 
         {bridgeBounds &&
@@ -32,6 +48,14 @@ const GameWorld = ({ bridgeRef, playerPosition, zombies, gameState }) => {
               orphanagePosition={orphanagePosition}
             />
           ))}
+
+        {bullets.map((bullet) => (
+          <Bullet
+            key={bullet.id}
+            position={bullet.position}
+            direction={bullet.direction}
+          />
+        ))}
 
         <Orphanage health={orphanageHealth} maxHealth={300} />
       </div>
