@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import GameWorld from "./GameWorld";
 import GameHUD from "./GameHUD";
 import GameOverModal from "./GameOverModal";
@@ -10,6 +10,9 @@ const Game = ({ onGameExit }) => {
     gameState,
     playerPosition,
     zombies,
+    bullets,
+    playerDirection,
+    setPlayerDirection,
     bridgeRef,
     gameActions,
     handleKeyPress,
@@ -29,7 +32,11 @@ const Game = ({ onGameExit }) => {
         bridgeRef={bridgeRef}
         playerPosition={playerPosition}
         zombies={zombies}
+        bullets={bullets}
+        playerDirection={playerDirection}
+        setPlayerDirection={setPlayerDirection}
         gameState={gameState}
+        onShoot={gameActions.handleShoot}
       />
 
       <GameHUD
