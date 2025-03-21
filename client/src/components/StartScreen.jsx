@@ -11,7 +11,14 @@ const StartScreen = ({ onStartGame }) => {
             • Use <span className="font-bold">W,A,S,D</span> or{" "}
             <span className="font-bold">Arrow Keys</span> to move
           </li>
+          <li>
+            • <span className="font-bold">Move your mouse</span> to aim
+          </li>
+          <li>
+            • Use <span className="font-bold">Left Mouse Button</span> to shoot
+          </li>
           <li>• Defend the orphanage from zombies</li>
+          <li>• Shoot zombies to earn extra points (+5 per zombie)</li>
           <li>• Don't let zombies reach the orphanage</li>
           <li>• Each zombie reduces orphanage health by 30 points</li>
           <li>• Game ends when orphanage health reaches 0</li>
